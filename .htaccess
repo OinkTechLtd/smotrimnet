@@ -1,0 +1,56 @@
+Options -Indexes
+Options +FollowSymLinks
+
+RewriteEngine On
+
+# Force HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Remove trailing slash (except root)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [R=301,L]
+
+# Remove .html extension from URLs
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^.]+)$ $1.html [L]
+
+# Route /watch/* to watch page
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^watch/(.*)$ /pages/watch.html [L,QSA]
+
+# Route /tv /radio /iptv to index
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(tv|radio|iptv)$ /index.html [L,QSA]
+
+# Canonical www redirect (optional, uncomment if needed)
+# RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+# RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
+# Security headers
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets
+<FilesMatch "\.(css|js|svg|png|jpg|webp|gif|woff2|woff|ttf|ico)$">
+  Header set Cache-Control "public, max-age=2592000"
+</FilesMatch>
+
+# Cache HTML short term
+<FilesMatch "\.html$">
+  Header set Cache-Control "public, max-age=3600, must-revalidate"
+</FilesMatch>
+
+# Gzip compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml text/xml application/xml
+</IfModule>
+
+# Custom 404
+ErrorDocument 404 /404.html
