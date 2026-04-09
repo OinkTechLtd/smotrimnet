@@ -10,9 +10,13 @@ const CONFIG = {
   streamApiUrl: 'https://aqeleulwobgamdffkfri.supabase.co/functions/v1/public-channels',
   embedBase: 'https://stlivetv.tatnet.app/embed/',
   iptvApiBase: 'https://iptv-org.github.io/api',
+  iptvPlayerPage: '/pages/iptv-player.html',
   channelsPerPage: 24,
   refreshInterval: 5 * 60 * 1000, // 5 minutes
+  streamFetchPageSize: 100,
+  streamFetchMaxPages: 50,
   allowedOwners: ['oinktech', 'Twixoff', 'ТВКАНАЛЫ'],
+  iptvStatTarget: 8000,
 };
 
 // =============================================
@@ -20,7 +24,7 @@ const CONFIG = {
 // =============================================
 const state = {
   allChannels: [],       // StreamLiveTV filtered
-  iptvChannels: [],      // IPTV.org
+  iptvChannels: [],      // IPTV.org merged channels+streams
   currentPage: 1,
   iptvPage: 1,
   activeSource: 'all',   // all | streamlivetv | iptv
@@ -44,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupBurger();
   setupPlayerClose();
   setupFilterTabs();
+  applyRouteFromHash();
   loadChannels();
   loadIptvChannels();
 
@@ -52,6 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChannels(true);
     loadIptvChannels(true);
   }, CONFIG.refreshInterval);
+
+  window.addEventListener('hashchange', handleHashRoute);
 });
 
 // =============================================
@@ -65,11 +72,13 @@ function setupNav() {
       link.classList.add('active');
       const filter = link.dataset.filter;
       if (filter === 'iptv') {
+        history.replaceState({}, '', '#iptv');
         document.getElementById('iptv-channels-section').scrollIntoView({ behavior: 'smooth' });
       } else {
         state.activeType = filter;
         state.currentPage = 1;
         renderChannels();
+        history.replaceState({}, '', filter === 'all' ? '#' : `#${filter}`);
         document.getElementById('all-channels').scrollIntoView({ behavior: 'smooth' });
       }
     });
@@ -117,6 +126,7 @@ function setupFilterTabs() {
       state.currentPage = 1;
       renderChannels();
       if (state.activeSource === 'iptv') {
+        history.replaceState({}, '', '#iptv');
         document.getElementById('iptv-channels-section').scrollIntoView({ behavior: 'smooth' });
       }
     });
@@ -135,8 +145,8 @@ async function loadChannels(silent = false) {
     let page = 1;
     let totalPages = 1;
 
-    while (page <= totalPages && page <= 10) { // max 10 pages to prevent infinite loop
-      const res = await fetch(`${CONFIG.streamApiUrl}?page=${page}&limit=50`);
+    while (page <= totalPages && page <= CONFIG.streamFetchMaxPages) {
+      const res = await fetch(`${CONFIG.streamApiUrl}?page=${page}&limit=${CONFIG.streamFetchPageSize}`);
       const json = await res.json();
 
       if (json.data) {
@@ -175,44 +185,47 @@ async function loadIptvChannels(silent = false) {
   if (!silent && loadingEl) loadingEl.classList.remove('hidden');
 
   try {
-    // Get Russia channels from IPTV.org
-    const res = await fetch(`${CONFIG.iptvApiBase}/streams.json`);
-    const streams = await res.json();
+    const [streamsRes, channelsRes] = await Promise.all([
+      fetch(`${CONFIG.iptvApiBase}/streams.json`),
+      fetch(`${CONFIG.iptvApiBase}/channels.json`)
+    ]);
 
-    // Filter Russian and useful channels, deduplicate
+    const streams = await streamsRes.json();
+    const channels = await channelsRes.json();
+    const channelMap = new Map(channels.map(ch => [ch.id, ch]));
+
     const seen = new Set();
     state.iptvChannels = streams
       .filter(s => s.channel && s.url)
+      .filter(s => /^https?:\/\//i.test(s.url))
       .filter(s => {
-        if (seen.has(s.channel)) return false;
-        seen.add(s.channel);
+        const key = `${s.channel}__${s.url}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
       })
-      .slice(0, 500); // limit to 500
+      .map(s => {
+        const meta = channelMap.get(s.channel) || {};
+        return {
+          channel: s.channel,
+          channel_name: meta.name || s.channel,
+          url: s.url,
+          logo: meta.logo || '',
+          country: meta.country || '',
+          categories: meta.categories || [],
+          languages: meta.languages || [],
+          website: meta.website || '',
+          isIptv: true
+        };
+      });
 
   } catch (err) {
-    // Fallback: use channels.json
-    try {
-      const res = await fetch(`${CONFIG.iptvApiBase}/channels.json`);
-      const channels = await res.json();
-      state.iptvChannels = channels
-        .filter(c => c.country && ['RU','UA','BY','KZ'].includes(c.country))
-        .slice(0, 200)
-        .map(c => ({
-          channel: c.id,
-          channel_name: c.name,
-          url: c.website,
-          logo: c.logo,
-          country: c.country,
-          isIptv: true,
-          iptvData: c
-        }));
-    } catch (e) {
-      console.error('IPTV.org load error:', e);
-    }
+    console.error('IPTV.org load error:', err);
+    state.iptvChannels = [];
   }
 
   if (!silent && loadingEl) loadingEl.classList.add('hidden');
+  updateStats();
   renderIptvChannels();
 }
 
@@ -225,7 +238,8 @@ function updateStats() {
 
   animateNumber('#stat-tv', tvCount);
   animateNumber('#stat-radio', radioCount);
-  animateNumber('#stat-iptv', state.iptvChannels.length || '8000+');
+  const iptvCount = Math.max(state.iptvChannels.length, CONFIG.iptvStatTarget);
+  animateNumber('#stat-iptv', iptvCount);
 }
 
 function animateNumber(selector, target) {
@@ -417,6 +431,7 @@ function buildIptvCard(ch) {
   const logo = ch.logo || ch.icon || '';
   const country = ch.country || '';
   const url = ch.url || '';
+  const categories = Array.isArray(ch.categories) ? ch.categories.slice(0, 2).join(', ') : '';
 
   return `
     <article class="channel-card"
@@ -434,6 +449,7 @@ function buildIptvCard(ch) {
       </div>
       <div class="channel-info">
         <h3 class="channel-name">${name}</h3>
+        ${categories ? `<p class="channel-desc">${categories}</p>` : ''}
         <div class="channel-footer">
           <span class="channel-owner" style="color:var(--iptv);">IPTV.org</span>
           <span class="play-icon">▶</span>
@@ -483,6 +499,13 @@ function getPagesRange(current, total) {
   return pages;
 }
 
+function buildWatchPageUrl({ id = '', title = '' } = {}) {
+  const params = new URLSearchParams();
+  if (id) params.set('channel_id', id);
+  if (title) params.set('channel', slugify(title));
+  return `/pages/watch.html?${params.toString()}`;
+}
+
 // =============================================
 // PLAYER — StreamLiveTV
 // =============================================
@@ -497,7 +520,7 @@ function openChannel(id, title, desc, type, owner) {
   if (!overlay || !iframe) return;
 
   const embedUrl = `${CONFIG.embedBase}${id}`;
-  const watchUrl = `https://stlivetv.tatnet.app/watch/${id}`;
+  const watchUrl = buildWatchPageUrl({ id, title });
 
   iframe.src = embedUrl;
   if (titleEl) titleEl.textContent = title;
@@ -514,7 +537,7 @@ function openChannel(id, title, desc, type, owner) {
 
   // Update URL for SEO
   const slug = slugify(title);
-  history.pushState({ channelId: id, title }, title, `/watch/${slug}`);
+  history.replaceState({ channelId: id, title }, title, `#watch/${slug}`);
   document.title = `${title} — смотреть онлайн прямой эфир | Smotrim.net`;
 
   // Update meta for SEO
@@ -535,21 +558,24 @@ function openIptvChannel(name, url, logo) {
 
   if (!overlay || !iframe) return;
 
-  // For IPTV streams, use an HLS player embed or direct link
-  // Use player.iptv.org embed if available
-  const embedUrl = `https://player.iptv.org/?url=${encodeURIComponent(url)}`;
+  if (!url || !/^https?:\/\//i.test(url)) {
+    alert('Поток IPTV недоступен или имеет некорректный URL.');
+    return;
+  }
+
+  const embedUrl = `${CONFIG.iptvPlayerPage}?src=${encodeURIComponent(url)}&title=${encodeURIComponent(name)}`;
 
   iframe.src = embedUrl;
   if (titleEl) titleEl.textContent = name;
   if (descEl) descEl.textContent = 'IPTV.org — международный канал';
   if (metaEl) metaEl.innerHTML = `<span>🌐 IPTV.org</span><span>📡 Прямой эфир</span>`;
-  if (fullBtn) { fullBtn.href = url; }
+  if (fullBtn) { fullBtn.href = embedUrl; }
 
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 
   const slug = slugify(name);
-  history.pushState({ iptv: true, name }, name, `/iptv/${slug}`);
+  history.replaceState({ iptv: true, name }, name, `#iptv/${slug}`);
   document.title = `${name} — IPTV онлайн | Smotrim.net`;
   updateMeta(`${name} — смотреть IPTV онлайн | Smotrim.net`,
     `Смотрите ${name} онлайн бесплатно. Международное телевидение IPTV на Smotrim.net.`);
@@ -578,11 +604,7 @@ function setupPlayerClose() {
   });
 
   // Back button
-  window.addEventListener('popstate', () => {
-    if ($('#player-overlay').classList.contains('open')) {
-      closePlayer();
-    }
-  });
+  window.addEventListener('popstate', handleHashRoute);
 }
 
 function closePlayer() {
@@ -592,12 +614,58 @@ function closePlayer() {
   overlay.classList.remove('open');
   document.body.style.overflow = '';
   if (iframe) iframe.src = '';
-  history.pushState({}, 'Smotrim.net', '/');
+  history.replaceState({}, 'Smotrim.net', '#');
   document.title = 'Smotrim.net — Смотреть ТВ онлайн бесплатно | Прямые эфиры каналов';
   updateMeta(
     'Smotrim.net — Смотреть ТВ онлайн бесплатно',
     'Прямые эфиры более 50 телеканалов без регистрации. Россия 1, НТВ, СТС, ТНТ и другие.'
   );
+}
+
+function applyRouteFromHash() {
+  handleHashRoute();
+}
+
+function handleHashRoute() {
+  const hash = window.location.hash.replace(/^#/, '').trim().toLowerCase();
+  const cleanHash = hash.split('?')[0];
+  const navByFilter = {
+    all: '.nav-link[data-filter="all"]',
+    tv: '.nav-link[data-filter="tv"]',
+    radio: '.nav-link[data-filter="radio"]',
+    iptv: '.nav-link[data-filter="iptv"]',
+  };
+
+  if (cleanHash === 'tv' || cleanHash === 'radio' || cleanHash === 'all') {
+    state.activeType = cleanHash;
+    state.activeSource = 'all';
+    state.currentPage = 1;
+    setActiveNav(navByFilter[cleanHash]);
+    renderChannels();
+    return;
+  }
+
+  if (cleanHash === 'iptv') {
+    state.activeType = 'all';
+    state.activeSource = 'iptv';
+    setActiveNav(navByFilter.iptv);
+    renderChannels();
+    document.getElementById('iptv-channels-section')?.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
+  if (!cleanHash || cleanHash === 'watch') {
+    state.activeType = 'all';
+    state.activeSource = 'all';
+    setActiveNav(navByFilter.all);
+    renderChannels();
+  }
+}
+
+function setActiveNav(selector) {
+  $$('.nav-link').forEach(l => l.classList.remove('active'));
+  const target = $(selector);
+  if (target) target.classList.add('active');
 }
 
 // =============================================
