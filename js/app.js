@@ -195,18 +195,28 @@ function setupFilterTabs() {
 }
 
 function setupQuickPicker() {
-  const categorySelect = $('#category-select');
-  const channelSelect = $('#channel-select');
+  const categoriesWrap = $('#category-select');
+  const channelsWrap = $('#channel-select');
   const openBtn = $('#open-selected-channel');
-  if (!categorySelect || !channelSelect || !openBtn) return;
+  if (!categoriesWrap || !channelsWrap || !openBtn) return;
 
-  categorySelect.addEventListener('change', () => {
-    state.selectedCategory = categorySelect.value;
+  categoriesWrap.addEventListener('click', (event) => {
+    const btn = event.target.closest('.quick-chip');
+    if (!btn) return;
+    const selectedCategory = btn.dataset.category || 'all';
+    if (selectedCategory === state.selectedCategory) return;
+    state.selectedCategory = selectedCategory;
+    renderQuickPickerCategories();
     renderQuickPickerChannels();
   });
-  channelSelect.addEventListener('change', () => {
-    state.selectedChannelKey = channelSelect.value;
+
+  channelsWrap.addEventListener('click', (event) => {
+    const btn = event.target.closest('.quick-channel-btn');
+    if (!btn) return;
+    state.selectedChannelKey = btn.dataset.channelKey || '';
+    renderQuickPickerChannels();
   });
+
   openBtn.addEventListener('click', () => {
     const channel = getAllSelectableChannels().find(ch => ch.key === state.selectedChannelKey);
     if (channel) openAnyChannel(channel);
@@ -214,24 +224,45 @@ function setupQuickPicker() {
 }
 
 function refreshQuickPicker() {
-  const categorySelect = $('#category-select');
-  if (!categorySelect) return;
-  const channels = getAllSelectableChannels();
-  const categories = ['all', ...Array.from(new Set(channels.map(ch => ch.category)))];
-  categorySelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat === 'all' ? 'Все категории' : cat}</option>`).join('');
-  categorySelect.value = categories.includes(state.selectedCategory) ? state.selectedCategory : 'all';
+  const categoriesWrap = $('#category-select');
+  if (!categoriesWrap) return;
+  renderQuickPickerCategories();
   renderQuickPickerChannels();
 }
 
+function renderQuickPickerCategories() {
+  const categoriesWrap = $('#category-select');
+  if (!categoriesWrap) return;
+
+  const channels = getAllSelectableChannels();
+  const categories = ['all', ...Array.from(new Set(channels.map(ch => ch.category).filter(Boolean)))];
+  if (!categories.includes(state.selectedCategory)) state.selectedCategory = 'all';
+
+  categoriesWrap.innerHTML = categories.map(cat => {
+    const title = cat === 'all' ? 'Все' : escapeAttr(cat);
+    const active = state.selectedCategory === cat ? ' active' : '';
+    return `<button type="button" class="quick-chip${active}" data-category="${escapeAttr(cat)}">${title}</button>`;
+  }).join('');
+}
+
 function renderQuickPickerChannels() {
-  const channelSelect = $('#channel-select');
-  if (!channelSelect) return;
+  const channelsWrap = $('#channel-select');
+  if (!channelsWrap) return;
+
   const channels = getAllSelectableChannels().filter(ch => state.selectedCategory === 'all' || ch.category === state.selectedCategory);
-  channelSelect.innerHTML = channels.map(ch => `<option value="${ch.key}">${escapeAttr(ch.title)}</option>`).join('');
-  if (!channels.length) return;
+  if (!channels.length) {
+    channelsWrap.innerHTML = '<span class="quick-channel-empty">Нет каналов</span>';
+    state.selectedChannelKey = '';
+    return;
+  }
+
   const hasCurrent = channels.some(ch => ch.key === state.selectedChannelKey);
   state.selectedChannelKey = hasCurrent ? state.selectedChannelKey : channels[0].key;
-  channelSelect.value = state.selectedChannelKey;
+
+  channelsWrap.innerHTML = channels.map(ch => {
+    const active = state.selectedChannelKey === ch.key ? ' active' : '';
+    return `<button type="button" class="quick-channel-btn${active}" data-channel-key="${escapeAttr(ch.key)}">${escapeAttr(ch.title)}</button>`;
+  }).join('');
 }
 
 // =============================================
@@ -665,11 +696,13 @@ function openChannel(id, title, desc, type, owner) {
   // Update URL for SEO
   const slug = slugify(title);
   history.replaceState({ channelId: id, title }, title, `/watch/${slug}`);
-  document.title = `${title} — смотреть онлайн прямой эфир | Smotrim.net`;
+  document.title = `${title} — смотреть онлайн прямой эфир | ${window.SITE_NAME || window.location.hostname}`;
 
   // Update meta for SEO
-  updateMeta(`${title} — смотреть онлайн | Smotrim.net`,
-    `Смотрите ${title} онлайн бесплатно на Smotrim.net. Прямой эфир без регистрации.`);
+  const slug = slugify(title);
+  updateMeta(`${title} — смотреть онлайн | ${window.SITE_NAME || window.location.hostname}`,
+    `Смотрите ${title} онлайн бесплатно. Прямой эфир без регистрации.`,
+    `/watch/${slug}`);
   syncPlayerFavoriteButton();
 }
 
@@ -706,9 +739,10 @@ function openIptvChannel(name, url, logo) {
 
   const slug = slugify(name);
   history.replaceState({ iptv: true, name }, name, `/iptv/${slug}`);
-  document.title = `${name} — IPTV онлайн | Smotrim.net`;
-  updateMeta(`${name} — смотреть IPTV онлайн | Smotrim.net`,
-    `Смотрите ${name} онлайн бесплатно. Международное телевидение IPTV на Smotrim.net.`);
+  document.title = `${name} — IPTV онлайн | ${window.SITE_NAME || window.location.hostname}`;
+  updateMeta(`${name} — смотреть IPTV онлайн | ${window.SITE_NAME || window.location.hostname}`,
+    `Смотрите ${name} онлайн бесплатно. Международное телевидение IPTV.`,
+    `/iptv/${slug}`);
   syncPlayerFavoriteButton();
 }
 
@@ -786,11 +820,12 @@ function closePlayer() {
   overlay.classList.remove('open');
   document.body.style.overflow = '';
   if (iframe) iframe.src = '';
-  history.replaceState({}, 'Smotrim.net', getFilterPath());
-  document.title = 'Smotrim.net — Смотреть ТВ онлайн бесплатно | Прямые эфиры каналов';
+  history.replaceState({}, window.SITE_NAME || 'SmotrimTV', getFilterPath());
+  document.title = `${window.SITE_NAME || window.location.hostname} — Смотреть ТВ онлайн бесплатно | Прямые эфиры каналов`;
   updateMeta(
-    'Smotrim.net — Смотреть ТВ онлайн бесплатно',
-    'Прямые эфиры более 50 телеканалов без регистрации. Россия 1, НТВ, СТС, ТНТ и другие.'
+    `${window.SITE_NAME || window.location.hostname} — Смотреть ТВ онлайн бесплатно`,
+    'Прямые эфиры более 50 телеканалов без регистрации. Россия 1, НТВ, СТС, ТНТ и другие.',
+    '/'
   );
 }
 
@@ -935,9 +970,10 @@ function applyWatchSeoFallback(slug) {
   if (!slug) return;
   const channelName = slug.split('-').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const normalizedName = channelName || 'Телеканал';
-  const title = `${normalizedName} — смотреть онлайн прямой эфир | Smotrim.net`;
-  const description = `Смотрите ${normalizedName} онлайн бесплатно на Smotrim.net. Прямой эфир без регистрации.`;
-  updateMeta(title, description);
+  const siteName = window.SITE_NAME || window.location.hostname;
+  const title = `${normalizedName} — смотреть онлайн прямой эфир | ${siteName}`;
+  const description = `Смотрите ${normalizedName} онлайн бесплатно на ${siteName}. Прямой эфир без регистрации.`;
+  updateMeta(title, description, `/watch/${slug}`);
 }
 
 function getFilterPath() {
@@ -958,7 +994,7 @@ function setActiveNav(selector) {
 // =============================================
 // SEO HELPERS
 // =============================================
-function updateMeta(title, desc) {
+function updateMeta(title, desc, canonicalPath) {
   document.title = title;
   const metaDesc = $('meta[name="description"]');
   if (metaDesc) metaDesc.content = desc;
@@ -966,6 +1002,15 @@ function updateMeta(title, desc) {
   if (ogTitle) ogTitle.content = title;
   const ogDesc = $('meta[property="og:description"]');
   if (ogDesc) ogDesc.content = desc;
+  // update canonical dynamically for Yandex
+  const canonical = document.getElementById('canonical-link');
+  if (canonical && canonicalPath) {
+    canonical.href = `${window.SITE_ORIGIN || window.location.origin}${canonicalPath}`;
+  }
+  const ogUrl = document.getElementById('og-url');
+  if (ogUrl && canonicalPath) {
+    ogUrl.content = `${window.SITE_ORIGIN || window.location.origin}${canonicalPath}`;
+  }
 }
 
 function loadProfile() {
@@ -1128,3 +1173,548 @@ function getChannelEmoji(title, type) {
   if (t.includes('казахст')) return '🇰🇿';
   return '📺';
 }
+
+// =============================================
+// CAROUSEL LOGIC
+// =============================================
+const carouselState = {
+  index: 0,
+  category: 'all',
+  itemWidth: 196, // card + gap
+  visibleCount: 0,
+  channels: [],
+};
+
+function buildCarouselChannels() {
+  const all = getAllSelectableChannels();
+  if (carouselState.category === 'all') {
+    carouselState.channels = all;
+  } else {
+    carouselState.channels = all.filter(ch => ch.category === carouselState.category);
+  }
+}
+
+function renderCarouselCats() {
+  const wrap = document.getElementById('carousel-cats');
+  if (!wrap) return;
+  const all = getAllSelectableChannels();
+  const cats = ['all', ...Array.from(new Set(all.map(c => c.category).filter(Boolean)))];
+  wrap.innerHTML = cats.map(c => {
+    const label = c === 'all' ? 'Все' : c;
+    return `<button class="carousel-cat-btn${carouselState.category === c ? ' active' : ''}" data-cat="${c}">${label}</button>`;
+  }).join('');
+  wrap.querySelectorAll('.carousel-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      carouselState.category = btn.dataset.cat;
+      carouselState.index = 0;
+      renderCarouselCats();
+      buildCarouselChannels();
+      renderCarouselTrack();
+    });
+  });
+}
+
+function renderCarouselTrack() {
+  const track = document.getElementById('carousel-track');
+  if (!track) return;
+  buildCarouselChannels();
+  const channels = carouselState.channels;
+  if (!channels.length) {
+    track.innerHTML = '<p style="color:var(--text3);padding:20px">Нет каналов в этой категории</p>';
+    return;
+  }
+  track.innerHTML = channels.map((ch, i) => {
+    const favKey = ch.key;
+    const isFav = Boolean(state.profile.favorites[favKey]);
+    const thumb = ch.type === 'stream' && ch.payload.thumbnail_url
+      ? `<img src="${ch.payload.thumbnail_url}" alt="${escapeAttr(ch.title)}" loading="lazy" onerror="this.style.display='none'">`
+      : (ch.type === 'iptv' && ch.payload.logo
+        ? `<img src="${ch.payload.logo}" alt="${escapeAttr(ch.title)}" loading="lazy" onerror="this.style.display='none'">`
+        : getChannelEmoji(ch.title, ch.payload?.channel_type || 'tv'));
+    return `<div class="carousel-card${i === carouselState.index ? ' active-card' : ''}" data-idx="${i}" role="button" tabindex="0" aria-label="Смотреть ${ch.title}">
+      <div class="carousel-thumb">${thumb}
+        <span class="carousel-live-badge"><span class="carousel-live-dot"></span>LIVE</span>
+      </div>
+      <div class="carousel-info">
+        <div class="carousel-name">${ch.title}</div>
+        <div class="carousel-sub">${ch.category || ''}</div>
+      </div>
+      <button class="carousel-fav${isFav ? ' active' : ''}" data-key="${escapeAttr(favKey)}" data-title="${escapeAttr(ch.title)}" data-type="${ch.type}" aria-label="Избранное" onclick="event.stopPropagation()">
+        ${isFav ? '★' : '☆'}
+      </button>
+    </div>`;
+  }).join('');
+
+  // click events
+  track.querySelectorAll('.carousel-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.idx);
+      carouselState.index = idx;
+      highlightCarouselCard(idx);
+      const ch = carouselState.channels[idx];
+      if (ch) openAnyChannel(ch);
+    });
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') card.click(); });
+  });
+
+  // fav buttons
+  track.querySelectorAll('.carousel-fav').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleFavorite(btn.dataset.key, { title: btn.dataset.title, type: btn.dataset.type });
+      renderCarouselTrack();
+      updateProfileFavCount();
+    });
+  });
+
+  scrollCarouselTo(carouselState.index, false);
+}
+
+function highlightCarouselCard(idx) {
+  document.querySelectorAll('.carousel-card').forEach((c, i) => {
+    c.classList.toggle('active-card', i === idx);
+  });
+}
+
+function getCarouselVisible() {
+  const outer = document.querySelector('.carousel-track-outer');
+  if (!outer) return 4;
+  return Math.max(1, Math.floor(outer.offsetWidth / carouselState.itemWidth));
+}
+
+function scrollCarouselTo(idx, animate = true) {
+  const track = document.getElementById('carousel-track');
+  if (!track) return;
+  const count = carouselState.channels.length;
+  const visible = getCarouselVisible();
+  const maxIdx = Math.max(0, count - visible);
+  const clampedIdx = Math.min(Math.max(0, idx), maxIdx);
+  carouselState.index = clampedIdx;
+  if (!animate) track.style.transition = 'none';
+  track.style.transform = `translateX(-${clampedIdx * carouselState.itemWidth}px)`;
+  if (!animate) requestAnimationFrame(() => { track.style.transition = ''; });
+  updateCarouselArrows();
+}
+
+function updateCarouselArrows() {
+  const prev = document.getElementById('carousel-prev');
+  const next = document.getElementById('carousel-next');
+  const count = carouselState.channels.length;
+  const visible = getCarouselVisible();
+  if (prev) prev.disabled = carouselState.index === 0;
+  if (next) next.disabled = carouselState.index >= count - visible;
+}
+
+function setupCarousel() {
+  const prev = document.getElementById('carousel-prev');
+  const next = document.getElementById('carousel-next');
+  const track = document.getElementById('carousel-track');
+
+  if (prev) prev.addEventListener('click', () => {
+    const visible = getCarouselVisible();
+    scrollCarouselTo(carouselState.index - visible);
+  });
+  if (next) next.addEventListener('click', () => {
+    const visible = getCarouselVisible();
+    scrollCarouselTo(carouselState.index + visible);
+  });
+
+  // Touch swipe
+  if (track) {
+    let startX = 0;
+    track.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    track.addEventListener('touchend', e => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) {
+        const visible = getCarouselVisible();
+        scrollCarouselTo(carouselState.index + (diff > 0 ? visible : -visible));
+      }
+    });
+  }
+
+  // View toggle
+  const btnCarousel = document.getElementById('btn-carousel-view');
+  const btnGrid = document.getElementById('btn-grid-view');
+  const carouselWrap = document.getElementById('carousel-wrap');
+  const allChannelsSec = document.getElementById('all-channels');
+
+  if (btnCarousel) btnCarousel.addEventListener('click', () => {
+    btnCarousel.classList.add('active'); btnGrid.classList.remove('active');
+    if (carouselWrap) carouselWrap.style.display = '';
+    if (allChannelsSec) allChannelsSec.style.display = 'none';
+  });
+  if (btnGrid) btnGrid.addEventListener('click', () => {
+    btnGrid.classList.add('active'); btnCarousel.classList.remove('active');
+    if (carouselWrap) carouselWrap.style.display = 'none';
+    if (allChannelsSec) allChannelsSec.style.display = '';
+  });
+
+  // Shorts nav link
+  const navShorts = document.getElementById('nav-shorts');
+  if (navShorts) {
+    navShorts.addEventListener('click', e => {
+      e.preventDefault();
+      document.getElementById('shorts-section')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+  const mobileShorts = document.getElementById('mobile-shorts-btn');
+  if (mobileShorts) {
+    mobileShorts.addEventListener('click', e => {
+      e.preventDefault();
+      document.getElementById('shorts-section')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    scrollCarouselTo(carouselState.index, false);
+    updateCarouselArrows();
+  });
+}
+
+function refreshCarousel() {
+  buildCarouselChannels();
+  renderCarouselCats();
+  renderCarouselTrack();
+  updateCarouselArrows();
+}
+
+// =============================================
+// SHORTS LOGIC
+// =============================================
+const shortsState = {
+  page: 0,
+  perPage: 24,
+  total: 0,
+};
+
+function renderShorts(append = false) {
+  const feed = document.getElementById('shorts-feed');
+  const moreBtn = document.getElementById('shorts-load-more');
+  if (!feed) return;
+
+  const channels = state.iptvChannels;
+  if (!channels.length) {
+    if (!append) feed.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text3);padding:30px">Загружаем IPTV каналы...</p>';
+    return;
+  }
+
+  shortsState.total = channels.length;
+  const start = shortsState.page * shortsState.perPage;
+  const slice = channels.slice(start, start + shortsState.perPage);
+
+  const html = slice.map(ch => {
+    const name = ch.channel_name || ch.channel || 'IPTV';
+    const logo = ch.logo || '';
+    const country = ch.country || '';
+    const favKey = `iptv:${slugify(name)}`;
+    const isFav = Boolean(state.profile.favorites[favKey]);
+    const bg = logo
+      ? `<img src="${escapeAttr(logo)}" alt="${escapeAttr(name)}" loading="lazy" onerror="this.src='';this.parentElement.innerHTML='🌐'">`
+      : '🌐';
+    return `<article class="shorts-card" 
+        onclick="openIptvChannel('${escapeAttr(name)}','${escapeAttr(ch.url || '')}','${escapeAttr(logo)}')"
+        aria-label="Смотреть ${name}"
+        itemscope itemtype="https://schema.org/BroadcastChannel">
+      <meta itemprop="name" content="${escapeAttr(name)}">
+      <meta itemprop="url" content="${window.SITE_ORIGIN || ''}/iptv/${slugify(name)}">
+      <div class="shorts-card-bg">${bg}</div>
+      <div class="shorts-card-overlay">
+        <div class="shorts-card-name">${name}</div>
+        ${country ? `<div class="shorts-card-country">${country}</div>` : ''}
+      </div>
+      <span class="shorts-card-live"><span class="carousel-live-dot"></span>LIVE</span>
+      <div class="shorts-card-play">▶</div>
+      <button class="shorts-card-fav${isFav ? ' active' : ''}" onclick="event.stopPropagation();toggleFavorite('${escapeAttr(favKey)}',{title:'${escapeAttr(name)}',type:'iptv'});renderShorts();updateProfileFavCount()" aria-label="Избранное">${isFav ? '★' : '☆'}</button>
+    </article>`;
+  }).join('');
+
+  if (append) {
+    feed.insertAdjacentHTML('beforeend', html);
+  } else {
+    feed.innerHTML = html;
+  }
+
+  shortsState.page++;
+  const loaded = shortsState.page * shortsState.perPage;
+  if (moreBtn) {
+    moreBtn.disabled = loaded >= shortsState.total;
+    moreBtn.textContent = loaded >= shortsState.total ? 'Все каналы загружены' : 'Загрузить ещё';
+  }
+}
+
+function setupShorts() {
+  const moreBtn = document.getElementById('shorts-load-more');
+  if (moreBtn) {
+    moreBtn.addEventListener('click', () => renderShorts(true));
+  }
+}
+
+// =============================================
+// PROFILE MODAL
+// =============================================
+let profileActiveTab = 'favorites';
+
+function setupProfile() {
+  const btn = document.getElementById('profile-btn');
+  const overlay = document.getElementById('profile-overlay');
+  const closeBtn = document.getElementById('profile-close');
+
+  if (btn) btn.addEventListener('click', openProfile);
+  if (closeBtn) closeBtn.addEventListener('click', closeProfile);
+  if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) closeProfile(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay?.classList.contains('open')) closeProfile();
+  });
+
+  // Tabs
+  document.querySelectorAll('.profile-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      profileActiveTab = tab.dataset.tab;
+      renderProfileContent();
+    });
+  });
+
+  // Mobile fav button now opens profile
+  const mobileFavBtn = document.getElementById('mobile-open-favorites');
+  if (mobileFavBtn) {
+    mobileFavBtn.removeEventListener('click', null);
+    mobileFavBtn.addEventListener('click', openProfile);
+  }
+}
+
+function openProfile() {
+  const overlay = document.getElementById('profile-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderProfileContent();
+  updateProfileFavCount();
+}
+
+function closeProfile() {
+  const overlay = document.getElementById('profile-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function updateProfileFavCount() {
+  const el = document.getElementById('profile-fav-count');
+  if (!el) return;
+  const count = Object.keys(state.profile.favorites || {}).length;
+  const sub = document.getElementById('profile-modal-sub');
+  if (sub) sub.textContent = `${count} избранных канал${count === 1 ? '' : count < 5 ? 'а' : 'ов'}`;
+  if (count > 0) {
+    el.textContent = count > 99 ? '99+' : count;
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function renderProfileContent() {
+  const content = document.getElementById('profile-tab-content');
+  if (!content) return;
+
+  if (profileActiveTab === 'favorites') {
+    const favKeys = Object.keys(state.profile.favorites || {});
+    if (!favKeys.length) {
+      content.innerHTML = `<div class="profile-empty">
+        <div class="profile-empty-icon">⭐</div>
+        <h3>Нет избранных каналов</h3>
+        <p>Нажмите ☆ на карточке канала, чтобы добавить в избранное</p>
+      </div>`;
+      return;
+    }
+    const allCh = getAllSelectableChannels();
+    const favChannels = favKeys.map(k => {
+      const ch = allCh.find(c => c.key === k);
+      const savedMeta = state.profile.favorites[k];
+      return ch || { key: k, title: savedMeta?.title || k, type: savedMeta?.type || 'stream', category: '', payload: {} };
+    }).filter(Boolean);
+
+    content.innerHTML = `<div class="profile-channel-list">` +
+      favChannels.map(ch => {
+        const icon = ch.payload?.thumbnail_url
+          ? `<img src="${ch.payload.thumbnail_url}" alt="${escapeAttr(ch.title)}" onerror="this.style.display='none'">`
+          : (ch.payload?.logo
+            ? `<img src="${ch.payload.logo}" alt="${escapeAttr(ch.title)}" onerror="this.style.display='none'">`
+            : getChannelEmoji(ch.title, ch.payload?.channel_type));
+        return `<div class="profile-channel-item" onclick="openAnyChannel_byKey('${escapeAttr(ch.key)}')">
+          <div class="profile-channel-icon">${icon}</div>
+          <span class="profile-channel-name">${ch.title}</span>
+          <span class="profile-channel-type">${ch.type === 'iptv' ? 'IPTV' : 'ТВ'}</span>
+          <button class="profile-channel-remove" onclick="event.stopPropagation();removeFromFavorites('${escapeAttr(ch.key)}')" aria-label="Удалить">✕</button>
+        </div>`;
+      }).join('') +
+    `</div>`;
+  }
+
+  if (profileActiveTab === 'history') {
+    const last = state.profile.lastOpened;
+    if (!last) {
+      content.innerHTML = `<div class="history-empty">История просмотров пуста.<br>Начните смотреть каналы!</div>`;
+      return;
+    }
+    const ch = getAllSelectableChannels().find(c => c.key === last.key);
+    const title = ch?.title || last.key;
+    content.innerHTML = `<div class="profile-channel-list">
+      <div class="profile-channel-item" onclick="openAnyChannel_byKey('${escapeAttr(last.key)}')">
+        <div class="profile-channel-icon">${ch ? getChannelEmoji(title, ch.payload?.channel_type) : '📺'}</div>
+        <span class="profile-channel-name">${title}</span>
+        <span class="profile-channel-type">Последний</span>
+      </div>
+    </div>`;
+  }
+
+  if (profileActiveTab === 'settings') {
+    const isDark = document.body.dataset.theme === 'dark';
+    content.innerHTML = `<div class="profile-settings">
+      <div class="profile-setting-row">
+        <div>
+          <div class="profile-setting-label">Тёмная тема</div>
+          <div class="profile-setting-desc">Переключить на тёмный интерфейс</div>
+        </div>
+        <button class="profile-toggle${isDark ? ' on' : ''}" id="setting-dark-toggle"></button>
+      </div>
+      <div class="profile-setting-row">
+        <div>
+          <div class="profile-setting-label">Домен сайта</div>
+          <div class="profile-setting-desc">${window.location.hostname}</div>
+        </div>
+        <span style="font-size:0.75rem;color:var(--text3)">Авто SEO ✓</span>
+      </div>
+      <div class="profile-setting-row">
+        <div>
+          <div class="profile-setting-label">Избранных каналов</div>
+          <div class="profile-setting-desc">Сохранено локально</div>
+        </div>
+        <span style="font-size:0.85rem;color:var(--accent);font-weight:600">${Object.keys(state.profile.favorites||{}).length}</span>
+      </div>
+      <div class="profile-setting-row">
+        <div>
+          <div class="profile-setting-label">Очистить избранное</div>
+          <div class="profile-setting-desc">Удалить все сохранённые каналы</div>
+        </div>
+        <button onclick="clearAllFavorites()" style="padding:6px 14px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;cursor:pointer;font-size:0.8rem">Очистить</button>
+      </div>
+    </div>`;
+    const darkToggle = document.getElementById('setting-dark-toggle');
+    if (darkToggle) {
+      darkToggle.addEventListener('click', () => {
+        const current = document.body.dataset.theme === 'dark' ? 'dark' : 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        state.profile.theme = next;
+        saveProfile();
+        darkToggle.classList.toggle('on', next === 'dark');
+      });
+    }
+  }
+}
+
+function openAnyChannel_byKey(key) {
+  const ch = getAllSelectableChannels().find(c => c.key === key);
+  if (!ch) return;
+  closeProfile();
+  openAnyChannel(ch);
+}
+
+function removeFromFavorites(key) {
+  delete state.profile.favorites[key];
+  saveProfile();
+  updateProfileFavCount();
+  renderProfileContent();
+  renderChannels();
+  renderIptvChannels();
+  renderCarouselTrack();
+}
+
+function clearAllFavorites() {
+  if (!confirm('Удалить все избранные каналы?')) return;
+  state.profile.favorites = {};
+  saveProfile();
+  updateProfileFavCount();
+  renderProfileContent();
+}
+
+// =============================================
+// PER-CHANNEL SEO (schema.org BroadcastChannel)
+// =============================================
+function buildChannelSeoSchema(ch, origin) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BroadcastChannel',
+    'name': ch.title || ch.name,
+    'url': `${origin}/watch/${slugify(ch.title || '')}`,
+    'description': ch.description || `Смотрите ${ch.title} онлайн бесплатно. Прямой эфир.`,
+    'broadcastDisplayName': ch.title,
+    'inLanguage': 'ru',
+    'potentialAction': {
+      '@type': 'WatchAction',
+      'target': `${origin}/watch/${slugify(ch.title || '')}`
+    }
+  };
+}
+
+function injectChannelSeoOnOpen(channelName, channelDesc, channelType, origin) {
+  let existing = document.getElementById('channel-schema-ld');
+  if (!existing) {
+    existing = document.createElement('script');
+    existing.type = 'application/ld+json';
+    existing.id = 'channel-schema-ld';
+    document.head.appendChild(existing);
+  }
+  const schema = buildChannelSeoSchema(
+    { title: channelName, description: channelDesc },
+    origin || window.SITE_ORIGIN || window.location.origin
+  );
+  existing.textContent = JSON.stringify(schema);
+}
+
+// Patch openChannel to inject per-channel SEO schema
+const _origOpenChannel = openChannel;
+window.openChannel = function(id, title, desc, type, owner) {
+  _origOpenChannel(id, title, desc, type, owner);
+  injectChannelSeoOnOpen(title, desc, type, window.SITE_ORIGIN);
+};
+
+const _origOpenIptv = openIptvChannel;
+window.openIptvChannel = function(name, url, logo) {
+  _origOpenIptv(name, url, logo);
+  injectChannelSeoOnOpen(name, 'IPTV.org — международный канал', 'iptv', window.SITE_ORIGIN);
+};
+
+// =============================================
+// INIT NEW FEATURES
+// =============================================
+document.addEventListener('DOMContentLoaded', () => {
+  setupCarousel();
+  setupShorts();
+  setupProfile();
+  updateProfileFavCount();
+});
+
+// Hook into existing loadChannels / loadIptvChannels completion
+const _origRenderFeatured = renderFeatured;
+window.renderFeatured = function() {
+  _origRenderFeatured();
+  refreshCarousel();
+};
+
+// When IPTV loads, refresh shorts
+const _origRenderIptv = renderIptvChannels;
+window.renderIptvChannels = function() {
+  _origRenderIptv();
+  if (state.iptvChannels.length && shortsState.page === 0) renderShorts();
+};
+
+// Keep profile fav count in sync
+const _origToggleFav = toggleFavorite;
+window.toggleFavorite = function(key, payload) {
+  _origToggleFav(key, payload);
+  updateProfileFavCount();
+};
