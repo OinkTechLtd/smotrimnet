@@ -4,87 +4,68 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="page-title">Смотреть ТВ онлайн бесплатно | Прямые эфиры каналов</title>
-  <meta name="description" id="meta-description" content="Смотрите российское и зарубежное телевидение онлайн бесплатно. Прямые эфиры более 50 телеканалов без регистрации. Россия 1, НТВ, СТС, ТНТ, МУЗ ТВ и другие.">
-  <meta name="keywords" content="смотреть тв онлайн, телевидение онлайн бесплатно, прямой эфир, российское тв онлайн, смотрим, стримлайв, iptv онлайн">
+  <meta name="description" id="meta-desc" content="Смотрите российское и зарубежное телевидение онлайн бесплатно. Прямые эфиры более 50 телеканалов без регистрации. Россия 1, НТВ, СТС, ТНТ, МУЗ ТВ и другие.">
+  <meta name="keywords" content="смотреть тв онлайн, телевидение онлайн бесплатно, прямой эфир, российское тв онлайн, iptv онлайн, стримлайв">
   <meta name="robots" content="index, follow">
-  <meta name="author" id="meta-author" content="SmotrimTV">
+  <meta name="author" id="meta-author" content="">
   <link rel="canonical" id="canonical-link" href="/">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" id="og-url" content="/">
   <meta property="og:title" id="og-title" content="Смотреть ТВ онлайн бесплатно">
-  <meta property="og:description" id="og-desc" content="Прямые эфиры более 50 российских и зарубежных телеканалов бесплатно и без регистрации.">
+  <meta property="og:description" content="Прямые эфиры более 50 российских и зарубежных телеканалов бесплатно и без регистрации.">
   <meta property="og:image" id="og-image" content="/og-image.jpg">
   <meta property="og:locale" content="ru_RU">
-  <meta property="og:site_name" id="og-site-name" content="SmotrimTV">
+  <meta property="og:site_name" id="og-sitename" content="">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" id="tw-title" content="ТВ онлайн бесплатно">
-  <meta name="twitter:description" id="tw-desc" content="Прямые эфиры телеканалов бесплатно">
+  <meta name="twitter:description" content="Прямые эфиры телеканалов бесплатно">
 
-  <!-- Schema.org — будет перезаписан JS под текущий домен -->
-  <script type="application/ld+json" id="schema-json">{"@context":"https://schema.org","@type":"WebSite","name":"SmotrimTV","url":"/","description":"Онлайн телевидение — прямые эфиры российских и зарубежных телеканалов бесплатно","potentialAction":{"@type":"SearchAction","target":"/search?q={search_term_string}","query-input":"required name=search_term_string"}}</script>
+  <!-- Schema.org — обновляется под текущий домен -->
+  <script type="application/ld+json" id="schema-json">{"@context":"https://schema.org","@type":"WebSite","name":"","url":"/","description":"Онлайн телевидение — прямые эфиры телеканалов бесплатно","potentialAction":{"@type":"SearchAction","target":"/search?q={search_term_string}","query-input":"required name=search_term_string"}}</script>
 
-  <!-- Yandex Webmaster verification placeholder (заменить на реальный токен) -->
-  <meta name="yandex-verification" id="yandex-verify" content="">
+  <!-- Yandex Webmaster — замените на ваш токен -->
+  <!-- <meta name="yandex-verification" content="ВАШ_ТОКЕН"> -->
 
   <script>
-    /* ===== DYNAMIC SEO: автоматически адаптируется к любому домену ===== */
-    (function applyDynamicSeoHost() {
-      const origin = window.location.origin; // e.g. https://mynewdomain.ru
-      const host   = window.location.hostname; // e.g. mynewdomain.ru
-      const siteName = host.split('.').slice(-2).join('.'); // domain.tld
-      const displayName = siteName.replace(/\.\w+$/, ''); // domain without tld
+    /* Авто-SEO: работает на любом домене без изменений кода */
+    (function() {
+      var origin   = window.location.origin;
+      var host     = window.location.hostname;
+      var parts    = host.split('.');
+      var siteName = parts.slice(-2).join('.');
+      var brandName = parts.slice(0, -1).join('.');
 
-      // <title>
-      const titleEl = document.getElementById('page-title');
-      if (titleEl) titleEl.textContent = `${displayName} — Смотреть ТВ онлайн бесплатно | Прямые эфиры`;
-
-      // author
-      const authorEl = document.getElementById('meta-author');
-      if (authorEl) authorEl.content = siteName;
-
-      // canonical
-      const canonical = document.getElementById('canonical-link');
-      if (canonical) canonical.href = `${origin}/`;
-
-      // og:url
-      const ogUrl = document.getElementById('og-url');
-      if (ogUrl) ogUrl.content = `${origin}/`;
-
-      // og:title
-      const ogTitle = document.getElementById('og-title');
-      if (ogTitle) ogTitle.content = `${displayName} — Смотреть ТВ онлайн бесплатно`;
-
-      // og:image (absolute URL под домен)
-      const ogImage = document.getElementById('og-image');
-      if (ogImage) ogImage.content = `${origin}/og-image.jpg`;
-
-      // og:site_name
-      const ogSite = document.getElementById('og-site-name');
-      if (ogSite) ogSite.content = siteName;
-
-      // twitter:title
-      const twTitle = document.getElementById('tw-title');
-      if (twTitle) twTitle.content = `${displayName} — ТВ онлайн`;
-
-      // Schema.org JSON-LD
-      const schemaEl = document.getElementById('schema-json');
-      if (schemaEl) {
-        try {
-          const schema = JSON.parse(schemaEl.textContent);
-          schema.name = siteName;
-          schema.url = `${origin}/`;
-          if (schema.potentialAction) schema.potentialAction.target = `${origin}/search?q={search_term_string}`;
-          schemaEl.textContent = JSON.stringify(schema);
-        } catch (e) { /* ignore */ }
-      }
-
-      /* Сохраняем origin глобально — используем везде в app.js */
       window.SITE_ORIGIN = origin;
       window.SITE_NAME   = siteName;
+
+      var set = function(id, attr, val) {
+        var el = document.getElementById(id);
+        if (el) el[attr] = val;
+      };
+
+      set('page-title',  'textContent', brandName + ' — Смотреть ТВ онлайн бесплатно | Прямые эфиры');
+      set('meta-author', 'content',     siteName);
+      set('canonical-link', 'href',     origin + '/');
+      set('og-url',      'content',     origin + '/');
+      set('og-title',    'content',     brandName + ' — Смотреть ТВ онлайн бесплатно');
+      set('og-image',    'content',     origin + '/og-image.jpg');
+      set('og-sitename', 'content',     siteName);
+      set('tw-title',    'content',     brandName + ' — ТВ онлайн');
+
+      var schemaEl = document.getElementById('schema-json');
+      if (schemaEl) {
+        try {
+          var s = JSON.parse(schemaEl.textContent);
+          s.name = siteName;
+          s.url  = origin + '/';
+          if (s.potentialAction) s.potentialAction.target = origin + '/search?q={search_term_string}';
+          schemaEl.textContent = JSON.stringify(s);
+        } catch(e) {}
+      }
     })();
   </script>
 
@@ -105,11 +86,11 @@
     </a>
 
     <nav class="main-nav" id="main-nav">
-      <a href="/" class="nav-link active" data-filter="all">Все каналы</a>
+    <a href="/" class="nav-link active" data-filter="all">Все каналы</a>
       <a href="/tv" class="nav-link" data-filter="tv">📺 ТВ</a>
       <a href="/radio" class="nav-link" data-filter="radio">📻 Радио</a>
       <a href="/iptv" class="nav-link" data-filter="iptv">🌐 IPTV</a>
-      <a href="#shorts-section" class="nav-link nav-link-shorts" id="nav-shorts">▶ Shorts</a>
+      <a href="#shorts-section" class="nav-link nav-shorts-link" id="nav-shorts">▶ Shorts</a>
     </nav>
 
     <div class="header-right">
@@ -120,9 +101,9 @@
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
       </div>
-      <button class="profile-btn" id="profile-btn" type="button" aria-label="Профиль и избранное" title="Мой профиль">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        <span class="profile-fav-count" id="profile-fav-count" style="display:none">0</span>
+      <button class="profile-btn" id="profile-btn" type="button" aria-label="Профиль">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <span class="profile-count" id="profile-fav-count" style="display:none">0</span>
       </button>
       <button class="burger-btn" id="burger-btn" aria-label="Меню">
         <span></span><span></span><span></span>
@@ -172,52 +153,48 @@
   </div>
 </section>
 
-<!-- CHANNEL CAROUSEL (smotrim.org style) -->
-<section class="section carousel-section" id="carousel-section" aria-label="Карусель каналов">
+<!-- CHANNEL CAROUSEL -->
+<section class="section carousel-section" id="carousel-section">
   <div class="container">
     <div class="section-header">
-      <h2 class="section-title">🎠 Каналы — листай</h2>
+      <h2 class="section-title">🎠 Листай каналы</h2>
       <div class="carousel-view-toggle">
         <button class="carousel-view-btn active" id="btn-carousel-view" type="button" title="Карусель">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="4" height="10" rx="1"/><rect x="8" y="4" width="8" height="16" rx="1"/><rect x="18" y="7" width="4" height="10" rx="1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="4" height="10" rx="1"/><rect x="8" y="4" width="8" height="16" rx="1"/><rect x="18" y="7" width="4" height="10" rx="1"/></svg>
+          Карусель
         </button>
         <button class="carousel-view-btn" id="btn-grid-view" type="button" title="Сетка">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Сетка
         </button>
       </div>
     </div>
-
-    <!-- CAROUSEL VIEW -->
+    <div class="carousel-cats" id="carousel-cats"></div>
     <div class="carousel-wrap" id="carousel-wrap">
-      <button class="carousel-arrow carousel-arrow-left" id="carousel-prev" aria-label="Назад">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      <button class="carousel-arrow" id="carousel-prev" type="button" aria-label="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="carousel-track-outer">
-        <div class="carousel-track" id="carousel-track">
-          <!-- filled by JS -->
-        </div>
+        <div class="carousel-track" id="carousel-track"></div>
       </div>
-      <button class="carousel-arrow carousel-arrow-right" id="carousel-next" aria-label="Вперёд">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      <button class="carousel-arrow" id="carousel-next" type="button" aria-label="Вперёд">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     </div>
-
-    <!-- Category tabs for carousel -->
-    <div class="carousel-cats" id="carousel-cats" role="tablist" aria-label="Категории для карусели"></div>
   </div>
 </section>
 
-<!-- SHORTS SECTION (YouTube Shorts style — IPTV channels) -->
-<section class="section shorts-section" id="shorts-section" aria-label="Shorts — IPTV каналы">
+<!-- SHORTS -->
+<section class="section shorts-section" id="shorts-section">
   <div class="container">
     <div class="section-header">
-      <h2 class="section-title"><span class="shorts-badge">▶ Shorts</span> IPTV каналы</h2>
-      <span class="section-badge">Листай вертикально</span>
+      <h2 class="section-title"><span class="shorts-badge">▶ Shorts</span></h2>
+      <span class="shorts-hint">IPTV каналы — вертикальная лента</span>
     </div>
-    <div class="shorts-feed" id="shorts-feed">
-      <!-- filled by JS -->
+    <div class="shorts-feed" id="shorts-feed"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="shorts-more-btn" id="shorts-load-more" type="button">Загрузить ещё</button>
     </div>
-    <button class="shorts-load-more" id="shorts-load-more" type="button">Загрузить ещё</button>
   </div>
 </section>
 
@@ -362,54 +339,45 @@
     </div>
   </div>
 </footer>
-<script>
-  // Dynamic footer — picks up current domain
-  (function() {
-    const host = window.location.hostname;
-    const copy = document.getElementById('footer-copy');
-    if (copy) copy.textContent = `© 2025–2026 ${host} — Все права защищены. Сайт не хранит видеоконтент.`;
-    // Also fix footer logo text
-    document.querySelectorAll('.footer-logo .logo-text').forEach(el => {
-      const parts = host.split('.');
-      if (parts.length >= 2) {
-        el.innerHTML = parts.slice(0, -1).join('.') + '<span class="logo-dot">.' + parts[parts.length-1] + '</span>';
-      }
-    });
-  })();
-</script>
 
 <!-- PROFILE MODAL -->
 <div class="profile-overlay" id="profile-overlay" role="dialog" aria-modal="true" aria-label="Мой профиль">
   <div class="profile-modal">
     <div class="profile-modal-header">
-      <div class="profile-avatar" id="profile-avatar">
-        <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <div class="profile-avatar">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>
-      <div class="profile-modal-info">
+      <div>
         <h2 class="profile-modal-title">Мой профиль</h2>
         <p class="profile-modal-sub" id="profile-modal-sub">Избранные каналы</p>
       </div>
-      <button class="profile-close" id="profile-close" aria-label="Закрыть">✕</button>
+      <button class="profile-close" id="profile-close" type="button" aria-label="Закрыть">✕</button>
     </div>
     <div class="profile-tabs">
-      <button class="profile-tab active" data-tab="favorites">⭐ Избранное</button>
-      <button class="profile-tab" data-tab="history">🕐 История</button>
-      <button class="profile-tab" data-tab="settings">⚙️ Настройки</button>
+      <button class="profile-tab active" data-tab="favorites" type="button">⭐ Избранное</button>
+      <button class="profile-tab" data-tab="history" type="button">🕐 История</button>
+      <button class="profile-tab" data-tab="settings" type="button">⚙️ Настройки</button>
     </div>
-    <div class="profile-tab-content" id="profile-tab-content">
-      <!-- filled by JS -->
-    </div>
+    <div class="profile-tab-content" id="profile-tab-content"></div>
   </div>
 </div>
 
 <nav class="mobile-nav" id="mobile-nav" aria-label="Мобильная навигация">
   <a href="/" class="mobile-nav-link active" data-filter="all">🏠<span>Все</span></a>
   <a href="/tv" class="mobile-nav-link" data-filter="tv">📺<span>ТВ</span></a>
-  <a href="#shorts-section" class="mobile-nav-link" id="mobile-shorts-btn">▶<span>Shorts</span></a>
   <a href="/radio" class="mobile-nav-link" data-filter="radio">📻<span>Радио</span></a>
+  <a href="/iptv" class="mobile-nav-link" data-filter="iptv">🌐<span>IPTV</span></a>
   <button class="mobile-nav-link" id="mobile-open-favorites" type="button">⭐<span>Профиль</span></button>
 </nav>
 
+<script>
+  (function() {
+    var h = window.location.hostname;
+    var el = document.getElementById('footer-copy');
+    if (el) el.textContent = '© 2025–2026 ' + h + ' — Все права защищены. Сайт не хранит видеоконтент.';
+  })();
+</script>
 <script src="/js/app.js"></script>
+<script src="/js/features.js"></script>
 </body>
 </html>
