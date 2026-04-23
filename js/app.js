@@ -7,7 +7,7 @@
 // CONFIG
 // =============================================
 const CONFIG = {
-  streamApiUrl: 'https://aqeleulwobgamdffkfri.supabase.co/functions/v1/public-channels',
+  streamApiUrl: 'https://proxyvideo.vercel.app/aqeleulwobgamdffkfri.supabase.co/functions/v1/public-channels',
   embedBase: 'https://stlivetv.tatnet.app/embed/',
   embessBase: 'https://embesslivestudio.lovable.app/player?channel=',
   iptvApiBase: 'https://iptv-org.github.io/api',
